@@ -1,3 +1,6 @@
 [submodule "Lib"]
 	path = Lib
 	url = https://github.com/ChrisS85/CGUI.git
+[submodule "ALD"]
+	path = ALD
+	url = git://github.com/maul-esel/ALD.ahk.git
