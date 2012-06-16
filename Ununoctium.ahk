@@ -1,3 +1,4 @@
+; <AutoHotkey L>
 #NoEnv
 #SingleInstance off
 #KeyHistory 0

@@ -38,13 +38,13 @@ class MainWindow extends CGUI
 	inputDescription:= this.AddControl("Edit",	"inputDescription",	"xp-320 yp+30 w400 r6")
 
 	; lists:
-	listAuthors			:= this.AddControl("ListView", "listAuthors",		"w490 h125 x745 y40",	"name|user name|homepage|email")
-	listDependencies	:= this.AddControl("ListView", "listDependencies",	"wp hp xp yp+180",		"name|version|id")
-	listTags			:= this.AddControl("ListView", "listTags",			"wp hp xp yp+180",		"tag")
-	listLinks			:= this.AddControl("ListView", "listLinks",			"wp hp xp yp+180",		"name|description|URL")
-	listRequirements	:= this.AddControl("ListView", "listRequirements",	"wp hp xp yp+180",		"type|value")
-	listSrcFiles		:= this.AddControl("ListView", "listSrcFiles",		"w700 h175 x10 y275",	"file name|path")
-	listDocFiles		:= this.AddControl("ListView", "listDocFiles",		"wp hp xp yp+230",		"file name|path")
+	listAuthors			:= this.AddControl("ListView", "listAuthors",		"w490 h125 x745 y40",			"name|user name|homepage|email")
+	listDependencies	:= this.AddControl("ListView", "listDependencies",	"wp hp xp yp+180",				"name|version|id")
+	listTags			:= this.AddControl("ListView", "listTags",			"wp hp xp yp+180",				"tag")
+	listLinks			:= this.AddControl("ListView", "listLinks",			"wp hp xp yp+180",				"name|description|URL")
+	listRequirements	:= this.AddControl("ListView", "listRequirements",	"wp hp xp yp+180",				"type|value")
+	listSrcFiles		:= this.AddControl("ListView", "listSrcFiles",		"w700 h175 x10 y275 -ReadOnly",	"file name|path")
+	listDocFiles		:= this.AddControl("ListView", "listDocFiles",		"wp hp xp yp+230 -ReadOnly",	"file name|path")
 
 	; add buttons:
 	addAuthors		:= this.AddControl("Button", "addAuthors",		"w245 x745 y165",	"Add")
@@ -101,25 +101,66 @@ class MainWindow extends CGUI
 
 	generatePack_Click()
 	{
-		file := "test.adl" ; todo
-		outFile := "test.zip"
+		file := A_WorkingDir "\test.adl" ; todo
+		outFile := A_WorkingDir "\test.zip"
 
 		this.GenerateDefinitionFile(file)
 
 		_wd := A_WorkingDir
-		SetWorkingDir % this.RootDir
+		SetWorkingDir % _td := this.TempDir()
+		MsgBox % _td
+
+		; move files into tempdir
+		for each, row in this.listSrcFiles.Items
+		{
+			this.deepCopy(row[2], row[1])
+			;FileCopy % row[2], % row[1]
+		}
+		for each, row in this.listDocFiles.Items
+		{
+			this.deepCopy(row[2], row[1])
+			;FileCopy % row[2], % row[1]
+		}
 
 		pack := new ALD.PackageGenerator(file)
 		pack.Package(outFile)
 
+		; delete tempdir
+		FileRemoveDir %_td%, 1
+
 		SetWorkingDir %_wd%
 
-		MsgBox 4, Package created at %file%. Open containing directory?
+		MsgBox 4, Ununoctium, Package created at %outFile%. Open containing directory?
 		IfMsgBox, Yes
 		{
-			SplitPath file,, dir
+			SplitPath outFile,, dir
 			Run %dir%
 		}
+	}
+
+	deepCopy(src, dest)
+	{
+		dir := ""
+		StringSplit parts, dest, \
+		if (parts0 > 1)
+		{
+			Loop % parts0 - 1
+			{
+				if (!InStr(FileExist(parts%A_Index%), "D"))
+					FileCreateDir % dir (dir .= "\" parts%A_Index%)
+			}
+		}
+		FileCopy %src%, %dest%, 1
+	}
+
+	TempDir()
+	{
+		Loop
+		{
+			dir := A_Temp "\UUO_" A_Index
+		} until (!FileExist(dir))
+		FileCreateDir %dir%
+		return dir
 	}
 
 	GenerateDefinitionFile(file)
@@ -252,11 +293,12 @@ class MainWindow extends CGUI
 						root := A_LoopField . "\"
 					continue
 				}
-				
-				list.Items.Add("", root . A_LoopField)
+				SplitPath A_LoopField, file
+				list.Items.Add("", file, root . A_LoopField)
 			}
 		}
-		this.shortenFilePaths()
+		Loop 2
+			list.ModifyCol(A_Index, "AutoHdr")
 	}
 
 	shortenFilePaths()
